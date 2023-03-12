@@ -16,16 +16,12 @@ type token struct {
 	id string
 }
 
-func (t *token) Equal(o *token) bool {
-	return t.id == o.id
-}
-
-func (t *token) Less(o *token) bool {
-	return t.id < o.id
-}
-
 func (t *token) String() string {
 	return t.id
+}
+
+func compareTokens(a, b *token) int {
+	return Compare(a.id, b.id)
 }
 
 var (
@@ -40,18 +36,13 @@ var (
 )
 
 func TestNewTreeSet(t *testing.T) {
-	ts := NewTreeSet[*token]()
+	ts := NewTreeSet[*token, Comparison[*token]](compareTokens)
 	must.NotNil(t, ts)
 	ts.dump()
 }
 
-func TestNewTreeSet_Box(t *testing.T) {
-	ts := NewTreeSet[*Builtin[int]]()
-	must.NotNil(t, ts)
-}
-
 func TestTreeSet_Insert(t *testing.T) {
-	ts := NewTreeSet[*token]()
+	ts := NewTreeSet[*token, Comparison[*token]](compareTokens)
 
 	ts.Insert(tokenA)
 	ts.Insert(tokenB)
@@ -66,9 +57,9 @@ func TestTreeSet_Insert(t *testing.T) {
 }
 
 func TestTreeSet_Insert2(t *testing.T) {
-	ts := NewTreeSet[*token]()
+	ts := NewTreeSet[*token, Comparison[*token]](compareTokens)
 
-	n := 10
+	n := 100
 
 	for i := 0; i < n; i++ {
 		n := rand.Int() % n
@@ -87,7 +78,7 @@ func (n *node[S]) String() string {
 	return fmt.Sprintf("%v", n.element)
 }
 
-func (t *TreeSet[S]) append(prefix, cprefix string, n *node[S], sb *strings.Builder) {
+func (t *TreeSet[S, C]) append(prefix, cprefix string, n *node[S], sb *strings.Builder) {
 	if n == nil {
 		return
 	}
@@ -109,7 +100,7 @@ func (t *TreeSet[S]) append(prefix, cprefix string, n *node[S], sb *strings.Buil
 	}
 }
 
-func (t *TreeSet[S]) dump() string {
+func (t *TreeSet[S, C]) dump() string {
 	var sb strings.Builder
 	t.append("", "", t.root, &sb)
 	return sb.String()

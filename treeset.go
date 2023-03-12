@@ -3,20 +3,21 @@
 
 package set
 
-// EqualFunc represents a type implementing Equal.
-type EqualFunc[T any] interface {
-	Equal(T) bool
+type Comparison[T any] func(T, T) int
+
+type builtin interface {
+	~string | ~int | ~uint | ~int64 | ~uint64 | ~int32 | ~uint32 | ~int16 | ~uint16 | ~int8 | ~uint8
 }
 
-// LessFunc represents a type implementing Less.
-type LessFunc[T any] interface {
-	Less(T) bool
-}
-
-// Sortable represents a type implementing Equal and Less.
-type Sortable[T any] interface {
-	EqualFunc[T]
-	LessFunc[T]
+func Compare[C builtin](x, y C) int {
+	switch {
+	case x < y:
+		return -1
+	case x > y:
+		return 1
+	default:
+		return 0
+	}
 }
 
 // TreeSet provides a sorted set implementation.
@@ -25,22 +26,24 @@ type Sortable[T any] interface {
 // https://en.wikipedia.org/wiki/Red–black_tree
 //
 // The implementation prioritizes readability over maximal optimizations.
-type TreeSet[S Sortable[S]] struct {
-	root *node[S]
-	size int
+type TreeSet[S any, C Comparison[S]] struct {
+	comparison C
+	root       *node[S]
+	size       int
 }
 
-func NewTreeSet[S Sortable[S]]() *TreeSet[S] {
-	return &TreeSet[S]{
-		root: nil,
-		size: 0,
+func NewTreeSet[S any, C Comparison[S]](compare C) *TreeSet[S, C] {
+	return &TreeSet[S, C]{
+		comparison: compare,
+		root:       nil,
+		size:       0,
 	}
 }
 
 // Insert item into t.
 //
 // Returns true if t was modified (item was not already in t), false otherwise.
-func (t *TreeSet[S]) Insert(item S) bool {
+func (t *TreeSet[S, C]) Insert(item S) bool {
 	return t.insert(&node[S]{
 		element: item,
 		color:   red,
@@ -50,7 +53,7 @@ func (t *TreeSet[S]) Insert(item S) bool {
 // Min returns the smallest item in the set.
 //
 // Must not be called on an empty set.
-func (t *TreeSet[S]) Min() S {
+func (t *TreeSet[S, C]) Min() S {
 	if t.root == nil {
 		panic("min: tree is empty")
 	}
@@ -61,7 +64,7 @@ func (t *TreeSet[S]) Min() S {
 // Max returns the largest item in the set.
 //
 // Must not be called on an empty set.
-func (t *TreeSet[S]) Max() S {
+func (t *TreeSet[S, C]) Max() S {
 	if t.root == nil {
 		panic("max: tree is empty")
 	}
@@ -70,12 +73,12 @@ func (t *TreeSet[S]) Max() S {
 }
 
 // Size returns the number of elements in the set.
-func (t *TreeSet[S]) Size() int {
+func (t *TreeSet[S, C]) Size() int {
 	return t.size
 }
 
 // Empty returns true if there are no elements in the set.
-func (t *TreeSet[S]) Empty() bool {
+func (t *TreeSet[S, C]) Empty() bool {
 	return t.Size() == 0
 }
 
@@ -95,7 +98,7 @@ const (
 	black color = true
 )
 
-type node[S Sortable[S]] struct {
+type node[S any] struct {
 	element S
 	color   color
 	parent  *node[S]
@@ -103,12 +106,12 @@ type node[S Sortable[S]] struct {
 	right   *node[S]
 }
 
-func (n *node[S]) less(o *node[S]) bool {
-	return n.element.Less(o.element)
+func (n *node[S]) less(c Comparison[S], o *node[S]) bool {
+	return c(n.element, o.element) < 0
 }
 
-func (n *node[S]) greater(o *node[S]) bool {
-	return o.element.Less(n.element)
+func (n *node[S]) greater(c Comparison[S], o *node[S]) bool {
+	return c(n.element, o.element) > 0
 }
 
 func (n *node[S]) black() bool {
@@ -119,19 +122,19 @@ func (n *node[S]) red() bool {
 	return n.color == red
 }
 
-func (t *TreeSet[S]) locate(n *node[S], target S) *node[S] {
-	if n == nil || n.element.Equal(target) {
-		return n
-	}
+// func (t *TreeSet[S, C]) locate(n *node[S], target S) *node[S] {
+// 	if n == nil || n.element.Equal(target) {
+// 		return n
+// 	}
 
-	if n.element.Less(target) {
-		return t.locate(n.right, target)
-	}
+// 	if n.element.Less(target) {
+// 		return t.locate(n.right, target)
+// 	}
 
-	return t.locate(n.left, target)
-}
+// 	return t.locate(n.left, target)
+// }
 
-func (t *TreeSet[S]) rotateRight(n *node[S]) {
+func (t *TreeSet[S, C]) rotateRight(n *node[S]) {
 	parent := n.parent
 	leftChild := n.left
 
@@ -146,7 +149,7 @@ func (t *TreeSet[S]) rotateRight(n *node[S]) {
 	t.replaceChild(parent, n, leftChild)
 }
 
-func (t *TreeSet[S]) rotateLeft(n *node[S]) {
+func (t *TreeSet[S, C]) rotateLeft(n *node[S]) {
 	parent := n.parent
 	rightChild := n.right
 
@@ -161,7 +164,7 @@ func (t *TreeSet[S]) rotateLeft(n *node[S]) {
 	t.replaceChild(parent, n, rightChild)
 }
 
-func (t *TreeSet[S]) replaceChild(parent, previous, next *node[S]) {
+func (t *TreeSet[S, C]) replaceChild(parent, previous, next *node[S]) {
 	switch {
 	case parent == nil:
 		t.root = next
@@ -178,7 +181,7 @@ func (t *TreeSet[S]) replaceChild(parent, previous, next *node[S]) {
 	}
 }
 
-func (t *TreeSet[S]) insert(n *node[S]) bool {
+func (t *TreeSet[S, C]) insert(n *node[S]) bool {
 	var (
 		parent *node[S] = nil
 		tmp    *node[S] = t.root
@@ -186,10 +189,12 @@ func (t *TreeSet[S]) insert(n *node[S]) bool {
 
 	for tmp != nil {
 		parent = tmp
+
+		cmp := t.compare(n, tmp)
 		switch {
-		case n.less(tmp):
+		case cmp < 0:
 			tmp = tmp.left
-		case n.greater(tmp):
+		case cmp > 0:
 			tmp = tmp.right
 		default:
 			// already exists in tree
@@ -201,7 +206,7 @@ func (t *TreeSet[S]) insert(n *node[S]) bool {
 	switch {
 	case parent == nil:
 		t.root = n
-	case n.less(parent):
+	case t.compare(n, parent) < 0:
 		parent.left = n
 	default:
 		parent.right = n
@@ -213,7 +218,7 @@ func (t *TreeSet[S]) insert(n *node[S]) bool {
 	return true
 }
 
-func (t *TreeSet[S]) rebalanceInsertion(n *node[S]) {
+func (t *TreeSet[S, C]) rebalanceInsertion(n *node[S]) {
 	parent := n.parent
 
 	// case 1: parent is nil
@@ -287,7 +292,7 @@ func (t *TreeSet[S]) rebalanceInsertion(n *node[S]) {
 
 }
 
-func (*TreeSet[S]) uncleOf(n *node[S]) *node[S] {
+func (*TreeSet[S, C]) uncleOf(n *node[S]) *node[S] {
 	grandparent := n.parent
 	switch {
 	case grandparent.left == n:
@@ -295,20 +300,25 @@ func (*TreeSet[S]) uncleOf(n *node[S]) *node[S] {
 	case grandparent.right == n:
 		return grandparent.left
 	default:
-		panic("parent is not a child of its grandparent")
+		panic("bug: parent is not a child of its own grandparent")
+
 	}
 }
 
-func (t *TreeSet[S]) min(n *node[S]) *node[S] {
+func (t *TreeSet[S, C]) min(n *node[S]) *node[S] {
 	if n.left == nil {
 		return n
 	}
 	return t.min(n.left)
 }
 
-func (t *TreeSet[S]) max(n *node[S]) *node[S] {
+func (t *TreeSet[S, C]) max(n *node[S]) *node[S] {
 	if n.right == nil {
 		return n
 	}
 	return t.max(n.right)
+}
+
+func (t *TreeSet[S, C]) compare(a, b *node[S]) int {
+	return t.comparison(a.element, b.element)
 }
