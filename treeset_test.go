@@ -45,6 +45,11 @@ func TestNewTreeSet(t *testing.T) {
 	ts.dump()
 }
 
+func TestNewTreeSet_Box(t *testing.T) {
+	ts := NewTreeSet[*Builtin[int]]()
+	must.NotNil(t, ts)
+}
+
 func TestTreeSet_Insert(t *testing.T) {
 	ts := NewTreeSet[*token]()
 
