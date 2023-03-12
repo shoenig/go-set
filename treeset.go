@@ -3,19 +3,28 @@
 
 package set
 
+// EqualFunc represents a type implementing Equal.
 type EqualFunc[T any] interface {
 	Equal(T) bool
 }
 
+// LessFunc represents a type implementing Less.
 type LessFunc[T any] interface {
 	Less(T) bool
 }
 
+// Sortable represents a type implementing Equal and Less.
 type Sortable[T any] interface {
 	EqualFunc[T]
 	LessFunc[T]
 }
 
+// TreeSet provides a sorted set implementation.
+//
+// The underlying data-structure is a standard Red-Black Tree.
+// https://en.wikipedia.org/wiki/Red–black_tree
+//
+// The implementation prioritizes readability over maximal optimizations.
 type TreeSet[S Sortable[S]] struct {
 	root *node[S]
 	size int
@@ -28,9 +37,9 @@ func NewTreeSet[S Sortable[S]]() *TreeSet[S] {
 	}
 }
 
-// Insert item into the set.
+// Insert item into t.
 //
-// Returns true if the tree was modified.
+// Returns true if t was modified (item was not already in t), false otherwise.
 func (t *TreeSet[S]) Insert(item S) bool {
 	return t.insert(&node[S]{
 		element: item,
@@ -39,6 +48,8 @@ func (t *TreeSet[S]) Insert(item S) bool {
 }
 
 // Min returns the smallest item in the set.
+//
+// Must not be called on an empty set.
 func (t *TreeSet[S]) Min() S {
 	if t.root == nil {
 		panic("min: tree is empty")
@@ -48,6 +59,8 @@ func (t *TreeSet[S]) Min() S {
 }
 
 // Max returns the largest item in the set.
+//
+// Must not be called on an empty set.
 func (t *TreeSet[S]) Max() S {
 	if t.root == nil {
 		panic("max: tree is empty")
@@ -179,7 +192,8 @@ func (t *TreeSet[S]) insert(n *node[S]) bool {
 		case n.greater(tmp):
 			tmp = tmp.right
 		default:
-			return false // already exists in tree
+			// already exists in tree
+			return false
 		}
 	}
 

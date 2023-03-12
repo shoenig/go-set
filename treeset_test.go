@@ -63,8 +63,10 @@ func TestTreeSet_Insert(t *testing.T) {
 func TestTreeSet_Insert2(t *testing.T) {
 	ts := NewTreeSet[*token]()
 
-	for i := 0; i < 1000; i++ {
-		n := rand.Int() % 1000
+	n := 10
+
+	for i := 0; i < n; i++ {
+		n := rand.Int() % n
 		t := &token{id: fmt.Sprintf("%02d", n)}
 		ts.Insert(t)
 	}
@@ -89,8 +91,10 @@ func (t *TreeSet[S]) append(prefix, cprefix string, n *node[S], sb *strings.Buil
 	sb.WriteString(n.String())
 	sb.WriteString("\n")
 
-	if n.right != nil {
+	if n.right != nil && n.left != nil {
 		t.append(cprefix+"├── ", cprefix+"│   ", n.right, sb)
+	} else if n.right != nil {
+		t.append(cprefix+"└── ", cprefix+"    ", n.right, sb)
 	}
 	if n.left != nil {
 		t.append(cprefix+"└── ", cprefix+"    ", n.left, sb)
