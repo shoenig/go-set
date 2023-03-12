@@ -32,19 +32,19 @@ type TreeSet[S any, C Comparison[S]] struct {
 	size       int
 }
 
-func NewTreeSet[S any, C Comparison[S]](compare C) *TreeSet[S, C] {
-	return &TreeSet[S, C]{
+func NewTreeSet[T any, C Comparison[T]](compare C) *TreeSet[T, C] {
+	return &TreeSet[T, C]{
 		comparison: compare,
 		root:       nil,
 		size:       0,
 	}
 }
 
-// Insert item into t.
+// Insert item into s.
 //
-// Returns true if t was modified (item was not already in t), false otherwise.
-func (t *TreeSet[S, C]) Insert(item S) bool {
-	return t.insert(&node[S]{
+// Returns true if s was modified (item was not already in s), false otherwise.
+func (s *TreeSet[T, C]) Insert(item T) bool {
+	return s.insert(&node[T]{
 		element: item,
 		color:   red,
 	})
@@ -53,33 +53,33 @@ func (t *TreeSet[S, C]) Insert(item S) bool {
 // Min returns the smallest item in the set.
 //
 // Must not be called on an empty set.
-func (t *TreeSet[S, C]) Min() S {
-	if t.root == nil {
+func (s *TreeSet[T, C]) Min() T {
+	if s.root == nil {
 		panic("min: tree is empty")
 	}
-	n := t.min(t.root)
+	n := s.min(s.root)
 	return n.element
 }
 
-// Max returns the largest item in the set.
+// Max returns the largest item in s.
 //
 // Must not be called on an empty set.
-func (t *TreeSet[S, C]) Max() S {
-	if t.root == nil {
+func (s *TreeSet[T, C]) Max() T {
+	if s.root == nil {
 		panic("max: tree is empty")
 	}
-	n := t.max(t.root)
+	n := s.max(s.root)
 	return n.element
 }
 
-// Size returns the number of elements in the set.
-func (t *TreeSet[S, C]) Size() int {
-	return t.size
+// Size returns the number of elements in s.
+func (s *TreeSet[T, C]) Size() int {
+	return s.size
 }
 
-// Empty returns true if there are no elements in the set.
-func (t *TreeSet[S, C]) Empty() bool {
-	return t.Size() == 0
+// Empty returns true if there are no elements in s.
+func (s *TreeSet[T, C]) Empty() bool {
+	return s.Size() == 0
 }
 
 // Red-Black Tree Invariants
@@ -98,27 +98,27 @@ const (
 	black color = true
 )
 
-type node[S any] struct {
-	element S
+type node[T any] struct {
+	element T
 	color   color
-	parent  *node[S]
-	left    *node[S]
-	right   *node[S]
+	parent  *node[T]
+	left    *node[T]
+	right   *node[T]
 }
 
-func (n *node[S]) less(c Comparison[S], o *node[S]) bool {
+func (n *node[T]) less(c Comparison[T], o *node[T]) bool {
 	return c(n.element, o.element) < 0
 }
 
-func (n *node[S]) greater(c Comparison[S], o *node[S]) bool {
+func (n *node[T]) greater(c Comparison[T], o *node[T]) bool {
 	return c(n.element, o.element) > 0
 }
 
-func (n *node[S]) black() bool {
+func (n *node[T]) black() bool {
 	return n.color == black
 }
 
-func (n *node[S]) red() bool {
+func (n *node[T]) red() bool {
 	return n.color == red
 }
 
@@ -134,7 +134,7 @@ func (n *node[S]) red() bool {
 // 	return t.locate(n.left, target)
 // }
 
-func (t *TreeSet[S, C]) rotateRight(n *node[S]) {
+func (s *TreeSet[T, C]) rotateRight(n *node[T]) {
 	parent := n.parent
 	leftChild := n.left
 
@@ -146,10 +146,10 @@ func (t *TreeSet[S, C]) rotateRight(n *node[S]) {
 	leftChild.right = n
 	n.parent = leftChild
 
-	t.replaceChild(parent, n, leftChild)
+	s.replaceChild(parent, n, leftChild)
 }
 
-func (t *TreeSet[S, C]) rotateLeft(n *node[S]) {
+func (s *TreeSet[T, C]) rotateLeft(n *node[T]) {
 	parent := n.parent
 	rightChild := n.right
 
@@ -161,13 +161,13 @@ func (t *TreeSet[S, C]) rotateLeft(n *node[S]) {
 	rightChild.left = n
 	n.parent = rightChild
 
-	t.replaceChild(parent, n, rightChild)
+	s.replaceChild(parent, n, rightChild)
 }
 
-func (t *TreeSet[S, C]) replaceChild(parent, previous, next *node[S]) {
+func (s *TreeSet[T, C]) replaceChild(parent, previous, next *node[T]) {
 	switch {
 	case parent == nil:
-		t.root = next
+		s.root = next
 	case parent.left == previous:
 		parent.left = next
 	case parent.right == previous:
@@ -181,16 +181,16 @@ func (t *TreeSet[S, C]) replaceChild(parent, previous, next *node[S]) {
 	}
 }
 
-func (t *TreeSet[S, C]) insert(n *node[S]) bool {
+func (s *TreeSet[T, C]) insert(n *node[T]) bool {
 	var (
-		parent *node[S] = nil
-		tmp    *node[S] = t.root
+		parent *node[T] = nil
+		tmp    *node[T] = s.root
 	)
 
 	for tmp != nil {
 		parent = tmp
 
-		cmp := t.compare(n, tmp)
+		cmp := s.compare(n, tmp)
 		switch {
 		case cmp < 0:
 			tmp = tmp.left
@@ -205,20 +205,20 @@ func (t *TreeSet[S, C]) insert(n *node[S]) bool {
 	n.color = red
 	switch {
 	case parent == nil:
-		t.root = n
-	case t.compare(n, parent) < 0:
+		s.root = n
+	case s.compare(n, parent) < 0:
 		parent.left = n
 	default:
 		parent.right = n
 	}
 	n.parent = parent
 
-	t.rebalanceInsertion(n)
-	t.size++
+	s.rebalanceInsertion(n)
+	s.size++
 	return true
 }
 
-func (t *TreeSet[S, C]) rebalanceInsertion(n *node[S]) {
+func (s *TreeSet[T, C]) rebalanceInsertion(n *node[T]) {
 	parent := n.parent
 
 	// case 1: parent is nil
@@ -243,7 +243,7 @@ func (t *TreeSet[S, C]) rebalanceInsertion(n *node[S]) {
 		return
 	}
 
-	uncle := t.uncleOf(parent)
+	uncle := s.uncleOf(parent)
 
 	switch {
 	// case 3: uncle is red
@@ -253,19 +253,19 @@ func (t *TreeSet[S, C]) rebalanceInsertion(n *node[S]) {
 		parent.color = black
 		grandparent.color = red
 		uncle.color = black
-		t.rebalanceInsertion(grandparent)
+		s.rebalanceInsertion(grandparent)
 
 	case parent == grandparent.left:
 		// case 4a: uncle is black
 		// + node is left->right child of its grandparent
 		if n == parent.right {
-			t.rotateLeft(parent)
+			s.rotateLeft(parent)
 			parent = n // recolor in case 5a
 		}
 
 		// case 5a: uncle is black
 		// + node is left->left child of its grandparent
-		t.rotateRight(grandparent)
+		s.rotateRight(grandparent)
 
 		// fix color of original parent and grandparent
 		parent.color = black
@@ -276,14 +276,14 @@ func (t *TreeSet[S, C]) rebalanceInsertion(n *node[S]) {
 		// case 4b: uncle is black
 		// + node is right->left child of its grandparent
 		if n == parent.left {
-			t.rotateRight(parent)
+			s.rotateRight(parent)
 			// points to root of rotated sub tree
 			parent = n // recolor in case 5b
 		}
 
 		// case 5b: uncle is black
 		// + node is right->right child of its grandparent
-		t.rotateLeft(grandparent)
+		s.rotateLeft(grandparent)
 
 		// fix color of original parent and grandparent
 		parent.color = black
@@ -292,7 +292,7 @@ func (t *TreeSet[S, C]) rebalanceInsertion(n *node[S]) {
 
 }
 
-func (*TreeSet[S, C]) uncleOf(n *node[S]) *node[S] {
+func (*TreeSet[T, C]) uncleOf(n *node[T]) *node[T] {
 	grandparent := n.parent
 	switch {
 	case grandparent.left == n:
@@ -300,25 +300,24 @@ func (*TreeSet[S, C]) uncleOf(n *node[S]) *node[S] {
 	case grandparent.right == n:
 		return grandparent.left
 	default:
-		panic("bug: parent is not a child of its own grandparent")
-
+		panic("bug: parent is not a child of our childs grandparent")
 	}
 }
 
-func (t *TreeSet[S, C]) min(n *node[S]) *node[S] {
+func (s *TreeSet[T, C]) min(n *node[T]) *node[T] {
 	if n.left == nil {
 		return n
 	}
-	return t.min(n.left)
+	return s.min(n.left)
 }
 
-func (t *TreeSet[S, C]) max(n *node[S]) *node[S] {
+func (s *TreeSet[T, C]) max(n *node[T]) *node[T] {
 	if n.right == nil {
 		return n
 	}
-	return t.max(n.right)
+	return s.max(n.right)
 }
 
-func (t *TreeSet[S, C]) compare(a, b *node[S]) int {
-	return t.comparison(a.element, b.element)
+func (s *TreeSet[T, C]) compare(a, b *node[T]) int {
+	return s.comparison(a.element, b.element)
 }

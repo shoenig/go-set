@@ -71,14 +71,14 @@ func TestTreeSet_Insert2(t *testing.T) {
 	fmt.Println("min:", ts.Min(), "max:", ts.Max(), "size:", ts.Size())
 }
 
-func (n *node[S]) String() string {
+func (n *node[T]) String() string {
 	if n.red() {
 		return fmt.Sprintf("\033[1;31m%v\033[0m", n.element)
 	}
 	return fmt.Sprintf("%v", n.element)
 }
 
-func (t *TreeSet[S, C]) append(prefix, cprefix string, n *node[S], sb *strings.Builder) {
+func (s *TreeSet[T, C]) append(prefix, cprefix string, n *node[T], sb *strings.Builder) {
 	if n == nil {
 		return
 	}
@@ -88,20 +88,20 @@ func (t *TreeSet[S, C]) append(prefix, cprefix string, n *node[S], sb *strings.B
 	sb.WriteString("\n")
 
 	if n.right != nil && n.left != nil {
-		t.append(cprefix+"├── ", cprefix+"│   ", n.right, sb)
+		s.append(cprefix+"├── ", cprefix+"│   ", n.right, sb)
 	} else if n.right != nil {
-		t.append(cprefix+"└── ", cprefix+"    ", n.right, sb)
+		s.append(cprefix+"└── ", cprefix+"    ", n.right, sb)
 	}
 	if n.left != nil {
-		t.append(cprefix+"└── ", cprefix+"    ", n.left, sb)
+		s.append(cprefix+"└── ", cprefix+"    ", n.left, sb)
 	}
 	if n.left == nil && n.right == nil {
 		return
 	}
 }
 
-func (t *TreeSet[S, C]) dump() string {
+func (s *TreeSet[T, C]) dump() string {
 	var sb strings.Builder
-	t.append("", "", t.root, &sb)
+	s.append("", "", s.root, &sb)
 	return sb.String()
 }
