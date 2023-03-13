@@ -3,6 +3,10 @@
 
 package set
 
+import (
+	"fmt"
+)
+
 type Comparison[T any] func(T, T) int
 
 type builtin interface {
@@ -80,6 +84,33 @@ func (s *TreeSet[T, C]) Size() int {
 // Empty returns true if there are no elements in s.
 func (s *TreeSet[T, C]) Empty() bool {
 	return s.Size() == 0
+}
+
+// Slice returns the elements of s as a slice, in order.
+func (s *TreeSet[T, C]) Slice() []T {
+	result := make([]T, 0, s.Size())
+	s.infix(func(n *node[T]) {
+		result = append(result, n.element)
+	}, s.root)
+	return result
+}
+
+// String creates a string representation of s, using "%v" printf formatting
+// each element into a string. The result contains elements in order.
+func (s *TreeSet[T, C]) String() string {
+	return s.StringFunc(func(element T) string {
+		return fmt.Sprintf("%v", element)
+	})
+}
+
+// StringFunc creates a string representation of s, using f to transform each
+// element into a string. The result contains elements in order.
+func (s *TreeSet[T, C]) StringFunc(f func(element T) string) string {
+	l := make([]string, 0, s.Size())
+	s.infix(func(n *node[T]) {
+		l = append(l, f(n.element))
+	}, s.root)
+	return fmt.Sprintf("%s", l)
 }
 
 // Red-Black Tree Invariants
@@ -320,4 +351,13 @@ func (s *TreeSet[T, C]) max(n *node[T]) *node[T] {
 
 func (s *TreeSet[T, C]) compare(a, b *node[T]) int {
 	return s.comparison(a.element, b.element)
+}
+
+func (s *TreeSet[T, C]) infix(visit func(*node[T]), n *node[T]) {
+	if n == nil {
+		return
+	}
+	s.infix(visit, n.left)
+	visit(n)
+	s.infix(visit, n.right)
 }

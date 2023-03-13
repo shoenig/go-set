@@ -41,7 +41,7 @@ func TestNewTreeSet(t *testing.T) {
 	ts.dump()
 }
 
-func TestTreeSet_Insert(t *testing.T) {
+func TestTreeSet_Insert_token(t *testing.T) {
 	ts := NewTreeSet[*token, Comparison[*token]](compareTokens)
 
 	ts.Insert(tokenA)
@@ -54,21 +54,36 @@ func TestTreeSet_Insert(t *testing.T) {
 	ts.Insert(tokenH)
 	fmt.Println("-- dump: --")
 	fmt.Println(ts.dump())
+
+	fmt.Println("-- slice --")
+	fmt.Println(ts.Slice())
+
+	fmt.Println("-- string --")
+	fmt.Println(ts.String())
+
 }
 
-func TestTreeSet_Insert2(t *testing.T) {
-	ts := NewTreeSet[*token, Comparison[*token]](compareTokens)
+func TestTreeSet_Insert_int(t *testing.T) {
+	ts := NewTreeSet[int, Comparison[int]](Compare[int])
 
-	n := 100
+	n := 20
 
 	for i := 0; i < n; i++ {
 		n := rand.Int() % n
-		t := &token{id: fmt.Sprintf("%02d", n)}
-		ts.Insert(t)
+		ts.Insert(n)
 	}
 	fmt.Println("-- dump: --")
 	fmt.Println(ts.dump())
 	fmt.Println("min:", ts.Min(), "max:", ts.Max(), "size:", ts.Size())
+
+	fmt.Println("-- slice --")
+	fmt.Println(ts.Slice())
+
+	fmt.Println("-- string --")
+	fmt.Println(ts.String())
+
+	must.Ascending(t, ts.Slice())
+	invariants(t, ts, Compare[int])
 }
 
 func (n *node[T]) String() string {
@@ -78,7 +93,7 @@ func (n *node[T]) String() string {
 	return fmt.Sprintf("%v", n.element)
 }
 
-func (s *TreeSet[T, C]) append(prefix, cprefix string, n *node[T], sb *strings.Builder) {
+func (s *TreeSet[T, C]) output(prefix, cprefix string, n *node[T], sb *strings.Builder) {
 	if n == nil {
 		return
 	}
@@ -88,12 +103,12 @@ func (s *TreeSet[T, C]) append(prefix, cprefix string, n *node[T], sb *strings.B
 	sb.WriteString("\n")
 
 	if n.right != nil && n.left != nil {
-		s.append(cprefix+"├── ", cprefix+"│   ", n.right, sb)
+		s.output(cprefix+"├── ", cprefix+"│   ", n.right, sb)
 	} else if n.right != nil {
-		s.append(cprefix+"└── ", cprefix+"    ", n.right, sb)
+		s.output(cprefix+"└── ", cprefix+"    ", n.right, sb)
 	}
 	if n.left != nil {
-		s.append(cprefix+"└── ", cprefix+"    ", n.left, sb)
+		s.output(cprefix+"└── ", cprefix+"    ", n.left, sb)
 	}
 	if n.left == nil && n.right == nil {
 		return
@@ -102,6 +117,26 @@ func (s *TreeSet[T, C]) append(prefix, cprefix string, n *node[T], sb *strings.B
 
 func (s *TreeSet[T, C]) dump() string {
 	var sb strings.Builder
-	s.append("", "", s.root, &sb)
+	s.output("", "", s.root, &sb)
 	return sb.String()
+}
+
+func invariants[T any, C Comparison[T]](t *testing.T, tree *TreeSet[T, C], cmp C) {
+	// assert Slice elements are ascending
+	slice := tree.Slice()
+	must.AscendingFunc(t, slice, func(a, b T) bool {
+		return cmp(a, b) < 1
+	})
+
+	// assert size of tree
+	size := tree.Size()
+	must.Eq(t, size, len(slice))
+
+	// assert slice[0] is the minimum
+	min := tree.Min()
+	must.Eq(t, slice[0], min)
+
+	// assert slice[len(slice)-1] is the maximum
+	max := tree.Max()
+	must.Eq(t, slice[len(slice)-1], max)
 }
