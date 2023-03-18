@@ -159,19 +159,16 @@ func (n *node[T]) black() bool {
 }
 
 func (n *node[T]) red() bool {
-	return n.color == red
+	return n != nil && n.color == red
 }
 
 func (s *TreeSet[T, C]) locate(start *node[T], target T) *node[T] {
-	fmt.Println("locate", "start", start, "target", target)
 	n := start
-
 	for {
 		if n == nil {
 			return nil
 		}
 		cmp := s.compare(n, &node[T]{element: target})
-		fmt.Println(" cmp", "n", n, "target", target, "result", cmp)
 		switch {
 		case cmp < 0:
 			n = n.right
@@ -343,8 +340,8 @@ func (s *TreeSet[T, C]) rebalanceInsertion(n *node[T]) {
 
 func (s *TreeSet[T, C]) delete(element T) bool {
 	n := s.locate(s.root, element)
+	fmt.Println("locate:", n)
 	if n == nil {
-		fmt.Println("n is nil")
 		return false
 	}
 
@@ -383,6 +380,10 @@ func (s *TreeSet[T, C]) delete(element T) bool {
 
 	// element was removed
 	s.size--
+	s.marker.color = black
+	s.marker.left = nil
+	s.marker.right = nil
+	s.marker.parent = nil
 	return true
 }
 
@@ -414,6 +415,7 @@ func (s *TreeSet[T, C]) delete01(n *node[T]) *node[T] {
 func (s *TreeSet[T, C]) rebalanceDeletion(n *node[T]) {
 	// base case: node is root
 	if n == s.root {
+		n.color = black
 		return
 	}
 
@@ -432,10 +434,10 @@ func (s *TreeSet[T, C]) rebalanceDeletion(n *node[T]) {
 		// case: black sibling with to black children and a red parent
 		if n.parent.red() {
 			n.parent.color = black
+		} else {
+			// case: black sibling with two black children and black parent
+			s.rebalanceDeletion(n.parent)
 		}
-
-		// case: black sibling with two black children and black parent
-		s.rebalanceDeletion(n.parent)
 	} else {
 		// case: black sibling with at least one red child
 		s.fixBlackSibling(n, sibling)
@@ -507,17 +509,17 @@ func (*TreeSet[T, C]) uncleOf(n *node[T]) *node[T] {
 }
 
 func (s *TreeSet[T, C]) min(n *node[T]) *node[T] {
-	if n.left == nil {
-		return n
+	for n.left != nil {
+		n = n.left
 	}
-	return s.min(n.left)
+	return n
 }
 
 func (s *TreeSet[T, C]) max(n *node[T]) *node[T] {
-	if n.right == nil {
-		return n
+	for n.right != nil {
+		n = n.right
 	}
-	return s.max(n.right)
+	return n
 }
 
 func (s *TreeSet[T, C]) compare(a, b *node[T]) int {

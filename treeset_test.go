@@ -12,6 +12,10 @@ import (
 	"github.com/shoenig/test/must"
 )
 
+const (
+	testSize = 10
+)
+
 type token struct {
 	id string
 }
@@ -87,18 +91,28 @@ func TestTreeSet_Insert_int(t *testing.T) {
 }
 
 func TestTreeSet_Remove_int(t *testing.T) {
-	ts := NewTreeSet[int, Comparison[int]](Compare[int])
+	cmp := Compare[int]
+	ts := NewTreeSet[int, Comparison[int]](cmp)
 
-	for i := 1; i <= 20; i++ {
+	size := 3
+
+	original := ints(size)
+	random := shuffle(original)
+
+	for _, i := range random {
 		ts.Insert(i)
 	}
+
+	invariants(t, ts, cmp)
 
 	fmt.Println("-- before --")
 	fmt.Println(ts.dump())
 	fmt.Println("min:", ts.Min(), "max:", ts.Max(), "size:", ts.Size())
 
-	removed := ts.Remove(7)
+	removed := ts.Remove(2)
 	must.True(t, removed)
+
+	invariants(t, ts, cmp)
 
 	fmt.Println("-- after --")
 	fmt.Println(ts.dump())
@@ -141,21 +155,46 @@ func (s *TreeSet[T, C]) dump() string {
 }
 
 func invariants[T any, C Comparison[T]](t *testing.T, tree *TreeSet[T, C], cmp C) {
+	fmt.Println("-- invariant --")
+	tree.dump()
+
 	// assert Slice elements are ascending
 	slice := tree.Slice()
+	fmt.Println("inv slice:", slice)
+
 	must.AscendingFunc(t, slice, func(a, b T) bool {
 		return cmp(a, b) < 1
 	})
 
 	// assert size of tree
 	size := tree.Size()
-	must.Eq(t, size, len(slice))
+	must.Eq(t, size, len(slice), must.Sprint("tree is wrong size"))
 
 	// assert slice[0] is the minimum
 	min := tree.Min()
-	must.Eq(t, slice[0], min)
+	must.Eq(t, slice[0], min, must.Sprint("tree has wrong min"))
 
 	// assert slice[len(slice)-1] is the maximum
 	max := tree.Max()
-	must.Eq(t, slice[len(slice)-1], max)
+	must.Eq(t, slice[len(slice)-1], max, must.Sprint("tree has wrong max"))
+}
+
+func ints(n int) []int {
+	s := make([]int, n)
+	for i := 0; i < n; i++ {
+		s[i] = i + 1
+	}
+	return s
+}
+
+func shuffle(s []int) []int {
+	c := make([]int, len(s))
+	copy(c, s)
+
+	n := len(c)
+	for i := 0; i < n-2; i++ {
+		swp := rand.Int31n(int32(n))
+		c[i], c[swp] = c[swp], c[i]
+	}
+	return c
 }
