@@ -33,6 +33,7 @@ func Compare[C builtin](x, y C) int {
 type TreeSet[S any, C Comparison[S]] struct {
 	comparison C
 	root       *node[S]
+	marker     *node[S]
 	size       int
 }
 
@@ -40,6 +41,7 @@ func NewTreeSet[T any, C Comparison[T]](compare C) *TreeSet[T, C] {
 	return &TreeSet[T, C]{
 		comparison: compare,
 		root:       nil,
+		marker:     &node[T]{color: black},
 		size:       0,
 	}
 }
@@ -52,6 +54,13 @@ func (s *TreeSet[T, C]) Insert(item T) bool {
 		element: item,
 		color:   red,
 	})
+}
+
+// Remove item from s.
+//
+// Returns true if s was modified (item was in s), false otherwise.
+func (s *TreeSet[T, C]) Remove(item T) bool {
+	return s.delete(item)
 }
 
 // Min returns the smallest item in the set.
@@ -146,24 +155,33 @@ func (n *node[T]) greater(c Comparison[T], o *node[T]) bool {
 }
 
 func (n *node[T]) black() bool {
-	return n.color == black
+	return n == nil || n.color == black
 }
 
 func (n *node[T]) red() bool {
 	return n.color == red
 }
 
-// func (t *TreeSet[S, C]) locate(n *node[S], target S) *node[S] {
-// 	if n == nil || n.element.Equal(target) {
-// 		return n
-// 	}
+func (s *TreeSet[T, C]) locate(start *node[T], target T) *node[T] {
+	fmt.Println("locate", "start", start, "target", target)
+	n := start
 
-// 	if n.element.Less(target) {
-// 		return t.locate(n.right, target)
-// 	}
-
-// 	return t.locate(n.left, target)
-// }
+	for {
+		if n == nil {
+			return nil
+		}
+		cmp := s.compare(n, &node[T]{element: target})
+		fmt.Println(" cmp", "n", n, "target", target, "result", cmp)
+		switch {
+		case cmp < 0:
+			n = n.right
+		case cmp > 0:
+			n = n.left
+		default:
+			return n
+		}
+	}
+}
 
 func (s *TreeSet[T, C]) rotateRight(n *node[T]) {
 	parent := n.parent
@@ -321,6 +339,159 @@ func (s *TreeSet[T, C]) rebalanceInsertion(n *node[T]) {
 		grandparent.color = red
 	}
 
+}
+
+func (s *TreeSet[T, C]) delete(element T) bool {
+	n := s.locate(s.root, element)
+	if n == nil {
+		fmt.Println("n is nil")
+		return false
+	}
+
+	var (
+		moved   *node[T]
+		deleted color
+	)
+
+	if n.left == nil || n.right == nil {
+		// case where deleted node had zero or one child
+		moved = s.delete01(n)
+		deleted = n.color
+	} else {
+		// case where node has two children
+
+		// find minimum of right subtree
+		successor := s.min(n.right)
+
+		// copy successor data into n
+		n.element = successor.element
+
+		// delete successor
+		moved = s.delete01(n)
+		deleted = successor.color
+	}
+
+	// rebalance if the node was black
+	if deleted == black {
+		s.rebalanceDeletion(moved)
+
+		// remove marker
+		if moved == s.marker {
+			s.replaceChild(moved.parent, moved, nil)
+		}
+	}
+
+	// element was removed
+	s.size--
+	return true
+}
+
+func (s *TreeSet[T, C]) delete01(n *node[T]) *node[T] {
+	// node only has left child, replace by left child
+	if n.left != nil {
+		s.replaceChild(n.parent, n, n.left)
+		return n.left
+	}
+
+	// node only has right child, replace by right child
+	if n.right != nil {
+		s.replaceChild(n.parent, n, n.right)
+		return n.right
+	}
+
+	// node has both children
+	// if node is black replace with marker
+	// if node is red we just remove it
+	if n.black() {
+		s.replaceChild(n.parent, n, s.marker)
+		return s.marker
+	} else {
+		s.replaceChild(n.parent, n, nil)
+		return nil
+	}
+}
+
+func (s *TreeSet[T, C]) rebalanceDeletion(n *node[T]) {
+	// base case: node is root
+	if n == s.root {
+		return
+	}
+
+	sibling := s.siblingOf(n)
+
+	// case: sibling is red
+	if sibling.red() {
+		s.fixRedSibling(n, sibling)
+		sibling = s.siblingOf(n)
+	}
+
+	// case: black sibling with two black children
+	if sibling.left.black() && sibling.right.black() {
+		sibling.color = red
+
+		// case: black sibling with to black children and a red parent
+		if n.parent.red() {
+			n.parent.color = black
+		}
+
+		// case: black sibling with two black children and black parent
+		s.rebalanceDeletion(n.parent)
+	} else {
+		// case: black sibling with at least one red child
+		s.fixBlackSibling(n, sibling)
+	}
+
+	return
+}
+
+func (s *TreeSet[T, C]) fixRedSibling(n *node[T], sibling *node[T]) {
+	sibling.color = black
+	n.parent.color = red
+
+	switch {
+	case n == n.parent.left:
+		s.rotateLeft(n.parent)
+	default:
+		s.rotateRight(n.parent)
+	}
+}
+
+func (s *TreeSet[T, C]) fixBlackSibling(n, sibling *node[T]) {
+	isLeftChild := n == n.parent.left
+
+	if isLeftChild && sibling.right.black() {
+		sibling.left.color = black
+		sibling.color = red
+		s.rotateRight(sibling)
+		sibling = n.parent.right
+	} else if !isLeftChild && sibling.left.black() {
+		sibling.right.color = black
+		sibling.color = red
+		s.rotateLeft(sibling)
+		sibling = n.parent.left
+	}
+
+	sibling.color = n.parent.color
+	n.parent.color = black
+	if isLeftChild {
+		sibling.right.color = black
+		s.rotateLeft(n.parent)
+	} else {
+		sibling.left.color = black
+		s.rotateRight(n.parent)
+	}
+}
+
+func (s *TreeSet[T, C]) siblingOf(n *node[T]) *node[T] {
+	parent := n.parent
+	switch {
+	case n == parent.left:
+		return parent.right
+	case n == parent.right:
+		return parent.left
+	default:
+		panic("bug: parent is not a child of its grandparent")
+	}
 }
 
 func (*TreeSet[T, C]) uncleOf(n *node[T]) *node[T] {

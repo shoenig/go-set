@@ -86,6 +86,25 @@ func TestTreeSet_Insert_int(t *testing.T) {
 	invariants(t, ts, Compare[int])
 }
 
+func TestTreeSet_Remove_int(t *testing.T) {
+	ts := NewTreeSet[int, Comparison[int]](Compare[int])
+
+	for i := 1; i <= 20; i++ {
+		ts.Insert(i)
+	}
+
+	fmt.Println("-- before --")
+	fmt.Println(ts.dump())
+	fmt.Println("min:", ts.Min(), "max:", ts.Max(), "size:", ts.Size())
+
+	removed := ts.Remove(7)
+	must.True(t, removed)
+
+	fmt.Println("-- after --")
+	fmt.Println(ts.dump())
+	fmt.Println("min:", ts.Min(), "max:", ts.Max(), "size:", ts.Size())
+}
+
 func (n *node[T]) String() string {
 	if n.red() {
 		return fmt.Sprintf("\033[1;31m%v\033[0m", n.element)
