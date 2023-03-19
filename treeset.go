@@ -340,7 +340,6 @@ func (s *TreeSet[T, C]) rebalanceInsertion(n *node[T]) {
 
 func (s *TreeSet[T, C]) delete(element T) bool {
 	n := s.locate(s.root, element)
-	fmt.Println("locate:", n)
 	if n == nil {
 		return false
 	}
@@ -364,7 +363,7 @@ func (s *TreeSet[T, C]) delete(element T) bool {
 		n.element = successor.element
 
 		// delete successor
-		moved = s.delete01(n)
+		moved = s.delete01(successor)
 		deleted = successor.color
 	}
 

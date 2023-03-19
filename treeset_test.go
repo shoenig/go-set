@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	testSize = 10
+	size = 1000
 )
 
 type token struct {
@@ -49,76 +49,81 @@ func TestTreeSet_Insert_token(t *testing.T) {
 	ts := NewTreeSet[*token, Comparison[*token]](compareTokens)
 
 	ts.Insert(tokenA)
+	invariants(t, ts, compareTokens)
+
 	ts.Insert(tokenB)
+	invariants(t, ts, compareTokens)
+
 	ts.Insert(tokenC)
+	invariants(t, ts, compareTokens)
+
 	ts.Insert(tokenD)
+	invariants(t, ts, compareTokens)
+
 	ts.Insert(tokenE)
+	invariants(t, ts, compareTokens)
+
 	ts.Insert(tokenF)
+	invariants(t, ts, compareTokens)
+
 	ts.Insert(tokenG)
+	invariants(t, ts, compareTokens)
+
 	ts.Insert(tokenH)
-	fmt.Println("-- dump: --")
-	fmt.Println(ts.dump())
+	invariants(t, ts, compareTokens)
 
-	fmt.Println("-- slice --")
-	fmt.Println(ts.Slice())
-
-	fmt.Println("-- string --")
-	fmt.Println(ts.String())
-
+	t.Log("dump: insert token")
+	t.Log(ts.dump())
 }
 
 func TestTreeSet_Insert_int(t *testing.T) {
-	ts := NewTreeSet[int, Comparison[int]](Compare[int])
+	cmp := Compare[int]
+	ts := NewTreeSet[int, Comparison[int]](cmp)
 
-	n := 20
+	numbers := ints(size)
+	random := shuffle(numbers)
 
-	for i := 0; i < n; i++ {
-		n := rand.Int() % n
-		ts.Insert(n)
+	for _, i := range random {
+		ts.Insert(i)
+		invariants(t, ts, cmp)
 	}
-	fmt.Println("-- dump: --")
-	fmt.Println(ts.dump())
-	fmt.Println("min:", ts.Min(), "max:", ts.Max(), "size:", ts.Size())
 
-	fmt.Println("-- slice --")
-	fmt.Println(ts.Slice())
-
-	fmt.Println("-- string --")
-	fmt.Println(ts.String())
-
-	must.Ascending(t, ts.Slice())
-	invariants(t, ts, Compare[int])
+	t.Log("dump: insert token")
+	t.Log(ts.dump())
 }
 
 func TestTreeSet_Remove_int(t *testing.T) {
 	cmp := Compare[int]
 	ts := NewTreeSet[int, Comparison[int]](cmp)
 
-	size := 3
+	numbers := ints(size)
+	random := shuffle(numbers)
 
-	original := ints(size)
-	random := shuffle(original)
-
+	// insert in random order
 	for _, i := range random {
 		ts.Insert(i)
 	}
 
 	invariants(t, ts, cmp)
 
-	fmt.Println("-- before --")
-	fmt.Println(ts.dump())
-	fmt.Println("min:", ts.Min(), "max:", ts.Max(), "size:", ts.Size())
+	// reshuffle
+	random = shuffle(random)
 
-	removed := ts.Remove(2)
-	must.True(t, removed)
+	// remove every element in random order
+	for _, i := range random {
+		removed := ts.Remove(i)
+		t.Log("dump: remove", i)
+		t.Log(ts.dump())
+		must.True(t, removed)
+		invariants(t, ts, cmp)
 
-	invariants(t, ts, cmp)
+	}
 
-	fmt.Println("-- after --")
-	fmt.Println(ts.dump())
-	fmt.Println("min:", ts.Min(), "max:", ts.Max(), "size:", ts.Size())
+	// done
+	must.Empty(t, ts)
 }
 
+// create a colorful representation of the element in node
 func (n *node[T]) String() string {
 	if n.red() {
 		return fmt.Sprintf("\033[1;31m%v\033[0m", n.element)
@@ -126,6 +131,7 @@ func (n *node[T]) String() string {
 	return fmt.Sprintf("%v", n.element)
 }
 
+// output creates a colorful string representation of s
 func (s *TreeSet[T, C]) output(prefix, cprefix string, n *node[T], sb *strings.Builder) {
 	if n == nil {
 		return
@@ -148,20 +154,20 @@ func (s *TreeSet[T, C]) output(prefix, cprefix string, n *node[T], sb *strings.B
 	}
 }
 
+// dump the output of s along with the slice string
 func (s *TreeSet[T, C]) dump() string {
 	var sb strings.Builder
+	sb.WriteString("\ntree:\n")
 	s.output("", "", s.root, &sb)
+	sb.WriteString("string:")
+	sb.WriteString(s.String())
 	return sb.String()
 }
 
+// invariants makes basic assertions about tree
 func invariants[T any, C Comparison[T]](t *testing.T, tree *TreeSet[T, C], cmp C) {
-	fmt.Println("-- invariant --")
-	tree.dump()
-
 	// assert Slice elements are ascending
 	slice := tree.Slice()
-	fmt.Println("inv slice:", slice)
-
 	must.AscendingFunc(t, slice, func(a, b T) bool {
 		return cmp(a, b) < 1
 	})
@@ -170,15 +176,20 @@ func invariants[T any, C Comparison[T]](t *testing.T, tree *TreeSet[T, C], cmp C
 	size := tree.Size()
 	must.Eq(t, size, len(slice), must.Sprint("tree is wrong size"))
 
+	if size == 0 {
+		return
+	}
+
 	// assert slice[0] is the minimum
 	min := tree.Min()
-	must.Eq(t, slice[0], min, must.Sprint("tree has wrong min"))
+	must.Eq(t, slice[0], min, must.Sprint("tree contains wrong min"))
 
 	// assert slice[len(slice)-1] is the maximum
 	max := tree.Max()
-	must.Eq(t, slice[len(slice)-1], max, must.Sprint("tree has wrong max"))
+	must.Eq(t, slice[len(slice)-1], max, must.Sprint("tree contains wrong max"))
 }
 
+// ints will create a []int from 1 to n
 func ints(n int) []int {
 	s := make([]int, n)
 	for i := 0; i < n; i++ {
@@ -187,12 +198,13 @@ func ints(n int) []int {
 	return s
 }
 
+// shuffle s
 func shuffle(s []int) []int {
 	c := make([]int, len(s))
 	copy(c, s)
 
 	n := len(c)
-	for i := 0; i < n-2; i++ {
+	for i := 0; i < n; i++ {
 		swp := rand.Int31n(int32(n))
 		c[i], c[swp] = c[swp], c[i]
 	}
