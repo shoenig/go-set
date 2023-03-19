@@ -65,6 +65,18 @@ func NewTreeSet[T any, C Compare[T]](compare C) *TreeSet[T, C] {
 	}
 }
 
+// TreeSetFrom creates a new TreeSet containing each item in items.
+//
+// T may be any type.
+//
+// C is an implementation of Compare[T]. For builtin types, Cmp provides a
+// convenient Compare implementation.
+func TreeSetFrom[T any, C Compare[T]](items []T, compare C) *TreeSet[T, C] {
+	s := NewTreeSet[T](compare)
+	s.InsertSlice(items)
+	return s
+}
+
 // Insert item into s.
 //
 // Returns true if s was modified (item was not already in s), false otherwise.
@@ -75,11 +87,37 @@ func (s *TreeSet[T, C]) Insert(item T) bool {
 	})
 }
 
+// InsertSlice will insert each item in items into s.
+//
+// Return true if s was modified (at least one item was not already in s), false otherwise.
+func (s *TreeSet[T, C]) InsertSlice(items []T) bool {
+	modified := false
+	for _, item := range items {
+		if s.Insert(item) {
+			modified = true
+		}
+	}
+	return modified
+}
+
 // Remove item from s.
 //
 // Returns true if s was modified (item was in s), false otherwise.
 func (s *TreeSet[T, C]) Remove(item T) bool {
 	return s.delete(item)
+}
+
+// RemoveSlice will remove each item in items from s.
+//
+// Return true if s was modified (any item was in s), false otherwise.
+func (s *TreeSet[T, C]) RemoveSlice(items []T) bool {
+	modified := false
+	for _, item := range items {
+		if s.Remove(item) {
+			modified = true
+		}
+	}
+	return modified
 }
 
 // Min returns the smallest item in the set.
@@ -104,6 +142,23 @@ func (s *TreeSet[T, C]) Max() T {
 	return n.element
 }
 
+// todo: TopK
+
+// todo: BottomK
+
+func (s *TreeSet[T, C]) Contains(item T) bool {
+	return s.locate(s.root, item) != nil
+}
+
+func (s *TreeSet[T, C]) ContainsSlice(items []T) bool {
+	for _, item := range items {
+		if !s.Contains(item) {
+			return false
+		}
+	}
+	return true
+}
+
 // Size returns the number of elements in s.
 func (s *TreeSet[T, C]) Size() int {
 	return s.size
@@ -122,6 +177,31 @@ func (s *TreeSet[T, C]) Slice() []T {
 	}, s.root)
 	return result
 }
+
+// Subset returns whether o is a subset of s.
+func (s *TreeSet[T, C]) Subset(o *TreeSet[T, C]) bool {
+	// todo: traverse o, checking if each element is in s
+	return s.ContainsSlice(o.Slice())
+}
+
+// Union returns a set that contains all elements of s and o combined.
+func (s *TreeSet[T, C]) Union(o *TreeSet[T, C]) *TreeSet[T, C] {
+	tree := NewTreeSet[T](s.comparison)
+	f := func(n *node[T]) { tree.Insert(n.element) }
+	s.prefix(f, s.root)
+	o.prefix(f, o.root)
+	return tree
+}
+
+// todo: Difference
+
+// todo: Intersect
+
+// todo: Copy
+
+// todo: Equal
+
+// todo: EqualSlice
 
 // String creates a string representation of s, using "%v" printf formatting
 // each element into a string. The result contains elements in order.
@@ -551,4 +631,13 @@ func (s *TreeSet[T, C]) infix(visit func(*node[T]), n *node[T]) {
 	s.infix(visit, n.left)
 	visit(n)
 	s.infix(visit, n.right)
+}
+
+func (s *TreeSet[T, C]) prefix(visit func(*node[T]), n *node[T]) {
+	if n == nil {
+		return
+	}
+	visit(n)
+	s.prefix(visit, n.left)
+	s.prefix(visit, n.right)
 }

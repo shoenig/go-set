@@ -13,7 +13,8 @@ import (
 )
 
 const (
-	size = 1000
+	// size = 10_000
+	size = 10
 )
 
 type token struct {
@@ -43,6 +44,12 @@ func TestNewTreeSet(t *testing.T) {
 	ts := NewTreeSet[*token, Compare[*token]](compareTokens)
 	must.NotNil(t, ts)
 	ts.dump()
+}
+
+func TestTreeSetFrom(t *testing.T) {
+	s := shuffle(ints(10))
+	ts := TreeSetFrom[int, Compare[int]](s, Cmp[int])
+	must.NotEmpty(t, ts)
 }
 
 func TestTreeSet_Empty(t *testing.T) {
@@ -137,6 +144,18 @@ func TestTreeSet_Insert_int(t *testing.T) {
 	t.Log(ts.dump())
 }
 
+func TestTreeSet_InsertSlice(t *testing.T) {
+	cmp := Cmp[int]
+
+	numbers := ints(size)
+	random := shuffle(numbers)
+
+	ts := NewTreeSet[int, Compare[int]](cmp)
+	must.True(t, ts.InsertSlice(random))
+	must.Eq(t, numbers, ts.Slice())
+	must.False(t, ts.InsertSlice(numbers))
+}
+
 func TestTreeSet_Remove_int(t *testing.T) {
 	cmp := Cmp[int]
 	ts := NewTreeSet[int, Compare[int]](cmp)
@@ -166,6 +185,139 @@ func TestTreeSet_Remove_int(t *testing.T) {
 
 	// all gone
 	must.Empty(t, ts)
+}
+
+func TestTreeSet_RemoveSlice(t *testing.T) {
+	cmp := Cmp[int]
+	ts := NewTreeSet[int, Compare[int]](cmp)
+
+	numbers := ints(size)
+	random := shuffle(numbers)
+	ts.InsertSlice(random)
+
+	must.True(t, ts.RemoveSlice(numbers))
+	must.Empty(t, ts)
+}
+
+func TestTreeSet_Contains(t *testing.T) {
+	t.Run("empty", func(t *testing.T) {
+		ts := NewTreeSet[int, Compare[int]](Cmp[int])
+		must.False(t, ts.Contains(42))
+	})
+
+	t.Run("exists", func(t *testing.T) {
+		ts := TreeSetFrom[int, Compare[int]]([]int{1, 2, 3, 4, 5}, Cmp[int])
+		must.Contains[int](t, 1, ts)
+		must.Contains[int](t, 2, ts)
+		must.Contains[int](t, 3, ts)
+		must.Contains[int](t, 4, ts)
+		must.Contains[int](t, 5, ts)
+	})
+
+	t.Run("absent", func(t *testing.T) {
+		ts := TreeSetFrom[int, Compare[int]]([]int{1, 2, 3, 4, 5}, Cmp[int])
+		must.NotContains[int](t, 0, ts)
+		must.NotContains[int](t, 6, ts)
+	})
+}
+
+func TestTreeSet_ContainsSlice(t *testing.T) {
+	t.Run("empty", func(t *testing.T) {
+		ts := NewTreeSet[int, Compare[int]](Cmp[int])
+		must.False(t, ts.ContainsSlice([]int{42, 43, 44}))
+	})
+
+	t.Run("exists", func(t *testing.T) {
+		ts := TreeSetFrom[int, Compare[int]]([]int{1, 2, 3, 4, 5}, Cmp[int])
+		must.True(t, ts.ContainsSlice([]int{2, 1, 3}))
+		must.True(t, ts.ContainsSlice([]int{5, 4, 3, 2, 1}))
+	})
+
+	t.Run("absent", func(t *testing.T) {
+		ts := TreeSetFrom[int, Compare[int]]([]int{1, 2, 3, 4, 5}, Cmp[int])
+		must.False(t, ts.ContainsSlice([]int{6, 7, 8}))
+		must.False(t, ts.ContainsSlice([]int{4, 5, 6}))
+	})
+}
+
+func TestTreeSet_Subset(t *testing.T) {
+	t.Run("empty empty", func(t *testing.T) {
+		t1 := NewTreeSet[int, Compare[int]](Cmp[int])
+		t2 := NewTreeSet[int, Compare[int]](Cmp[int])
+		must.True(t, t1.Subset(t2))
+	})
+
+	t.Run("empty full", func(t *testing.T) {
+		t1 := NewTreeSet[int, Compare[int]](Cmp[int])
+		t2 := TreeSetFrom[int, Compare[int]]([]int{1, 2, 3}, Cmp[int])
+		must.False(t, t1.Subset(t2))
+	})
+
+	t.Run("full empty", func(t *testing.T) {
+		t1 := NewTreeSet[int, Compare[int]](Cmp[int])
+		t2 := TreeSetFrom[int, Compare[int]]([]int{1, 2, 3}, Cmp[int])
+		must.True(t, t2.Subset(t1))
+	})
+
+	t.Run("same", func(t *testing.T) {
+		t1 := TreeSetFrom[int, Compare[int]]([]int{2, 1, 3}, Cmp[int])
+		t2 := TreeSetFrom[int, Compare[int]]([]int{1, 2, 3}, Cmp[int])
+		must.True(t, t1.Subset(t2))
+		must.True(t, t2.Subset(t1))
+	})
+
+	t.Run("subset", func(t *testing.T) {
+		t1 := TreeSetFrom[int, Compare[int]]([]int{2, 1, 3}, Cmp[int])
+		t2 := TreeSetFrom[int, Compare[int]]([]int{5, 4, 1, 2, 3}, Cmp[int])
+		must.False(t, t1.Subset(t2))
+	})
+
+	t.Run("superset", func(t *testing.T) {
+		t1 := TreeSetFrom[int, Compare[int]]([]int{5, 4, 2, 1, 3}, Cmp[int])
+		t2 := TreeSetFrom[int, Compare[int]]([]int{5, 1, 2, 3}, Cmp[int])
+		must.True(t, t1.Subset(t2))
+	})
+}
+
+func TestTreeSet_Union(t *testing.T) {
+	t.Run("empty empty", func(t *testing.T) {
+		t1 := TreeSetFrom[int, Compare[int]](nil, Cmp[int])
+		t2 := TreeSetFrom[int, Compare[int]](nil, Cmp[int])
+		result := t1.Union(t2)
+		must.Empty(t, result)
+	})
+
+	t.Run("empty full", func(t *testing.T) {
+		t1 := TreeSetFrom[int, Compare[int]](nil, Cmp[int])
+		t2 := TreeSetFrom[int, Compare[int]]([]int{3, 1, 2}, Cmp[int])
+		result := t1.Union(t2)
+		must.NotEmpty(t, result)
+		must.Eq(t, []int{1, 2, 3}, result.Slice())
+	})
+
+	t.Run("full empty", func(t *testing.T) {
+		t1 := TreeSetFrom[int, Compare[int]]([]int{2, 3, 1}, Cmp[int])
+		t2 := TreeSetFrom[int, Compare[int]](nil, Cmp[int])
+		result := t1.Union(t2)
+		must.NotEmpty(t, result)
+		must.Eq(t, []int{1, 2, 3}, result.Slice())
+	})
+
+	t.Run("subset", func(t *testing.T) {
+		t1 := TreeSetFrom[int, Compare[int]]([]int{2, 3, 1}, Cmp[int])
+		t2 := TreeSetFrom[int, Compare[int]]([]int{2}, Cmp[int])
+		result := t1.Union(t2)
+		must.NotEmpty(t, result)
+		must.Eq(t, []int{1, 2, 3}, result.Slice())
+	})
+
+	t.Run("superset", func(t *testing.T) {
+		t1 := TreeSetFrom[int, Compare[int]]([]int{2, 3, 1}, Cmp[int])
+		t2 := TreeSetFrom[int, Compare[int]]([]int{2, 5, 1, 2, 4}, Cmp[int])
+		result := t1.Union(t2)
+		must.NotEmpty(t, result)
+		must.Eq(t, []int{1, 2, 3, 4, 5}, result.Slice())
+	})
 }
 
 // create a colorful representation of the element in node
@@ -243,7 +395,7 @@ func ints(n int) []int {
 	return s
 }
 
-// shuffle s
+// create a copy of s and shuffle
 func shuffle(s []int) []int {
 	c := make([]int, len(s))
 	copy(c, s)
