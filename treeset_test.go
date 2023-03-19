@@ -45,6 +45,51 @@ func TestNewTreeSet(t *testing.T) {
 	ts.dump()
 }
 
+func TestTreeSet_Empty(t *testing.T) {
+	t.Run("empty", func(t *testing.T) {
+		ts := NewTreeSet[int, Compare[int]](Cmp[int])
+		must.Empty(t, ts)
+	})
+
+	t.Run("not empty", func(t *testing.T) {
+		ts := NewTreeSet[int, Compare[int]](Cmp[int])
+		ts.Insert(1)
+		must.NotEmpty(t, ts)
+	})
+}
+
+func TestTreeSet_Size(t *testing.T) {
+	t.Run("empty", func(t *testing.T) {
+		ts := NewTreeSet[int, Compare[int]](Cmp[int])
+		must.Size(t, 0, ts)
+	})
+	t.Run("one", func(t *testing.T) {
+		ts := NewTreeSet[int, Compare[int]](Cmp[int])
+		ts.Insert(42)
+		must.Size(t, 1, ts)
+	})
+	t.Run("ten", func(t *testing.T) {
+		ts := NewTreeSet[int, Compare[int]](Cmp[int])
+		s := shuffle(ints(10))
+		for i := 0; i < len(s); i++ {
+			ts.Insert(s[i])
+			must.Size(t, i+1, ts)
+		}
+		// insert again (all duplicates)
+		s = shuffle(s)
+		for i := 0; i < len(s); i++ {
+			ts.Insert(s[i])
+			must.Size(t, 10, ts)
+		}
+	})
+}
+
+// Slice
+
+// String
+
+// StringFunc
+
 func TestTreeSet_Insert_token(t *testing.T) {
 	ts := NewTreeSet[*token, Compare[*token]](compareTokens)
 
