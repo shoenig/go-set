@@ -25,7 +25,7 @@ func (t *token) String() string {
 }
 
 func compareTokens(a, b *token) int {
-	return Compare(a.id, b.id)
+	return Cmp(a.id, b.id)
 }
 
 var (
@@ -40,13 +40,13 @@ var (
 )
 
 func TestNewTreeSet(t *testing.T) {
-	ts := NewTreeSet[*token, Comparison[*token]](compareTokens)
+	ts := NewTreeSet[*token, Compare[*token]](compareTokens)
 	must.NotNil(t, ts)
 	ts.dump()
 }
 
 func TestTreeSet_Insert_token(t *testing.T) {
-	ts := NewTreeSet[*token, Comparison[*token]](compareTokens)
+	ts := NewTreeSet[*token, Compare[*token]](compareTokens)
 
 	ts.Insert(tokenA)
 	invariants(t, ts, compareTokens)
@@ -77,8 +77,8 @@ func TestTreeSet_Insert_token(t *testing.T) {
 }
 
 func TestTreeSet_Insert_int(t *testing.T) {
-	cmp := Compare[int]
-	ts := NewTreeSet[int, Comparison[int]](cmp)
+	cmp := Cmp[int]
+	ts := NewTreeSet[int, Compare[int]](cmp)
 
 	numbers := ints(size)
 	random := shuffle(numbers)
@@ -88,13 +88,13 @@ func TestTreeSet_Insert_int(t *testing.T) {
 		invariants(t, ts, cmp)
 	}
 
-	t.Log("dump: insert token")
+	t.Log("dump: insert int")
 	t.Log(ts.dump())
 }
 
 func TestTreeSet_Remove_int(t *testing.T) {
-	cmp := Compare[int]
-	ts := NewTreeSet[int, Comparison[int]](cmp)
+	cmp := Cmp[int]
+	ts := NewTreeSet[int, Compare[int]](cmp)
 
 	numbers := ints(size)
 	random := shuffle(numbers)
@@ -119,7 +119,7 @@ func TestTreeSet_Remove_int(t *testing.T) {
 
 	}
 
-	// done
+	// all gone
 	must.Empty(t, ts)
 }
 
@@ -165,7 +165,7 @@ func (s *TreeSet[T, C]) dump() string {
 }
 
 // invariants makes basic assertions about tree
-func invariants[T any, C Comparison[T]](t *testing.T, tree *TreeSet[T, C], cmp C) {
+func invariants[T any, C Compare[T]](t *testing.T, tree *TreeSet[T, C], cmp C) {
 	// assert Slice elements are ascending
 	slice := tree.Slice()
 	must.AscendingFunc(t, slice, func(a, b T) bool {

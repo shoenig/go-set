@@ -7,13 +7,23 @@ import (
 	"fmt"
 )
 
-type Comparison[T any] func(T, T) int
+// Compare represents a function that compares two elements.
+//
+// Must return
+// < 0 if the first parameter is less than the second parameter
+// 0 if the two parameters are equal
+// > 0 if the first parameters is greater than the second parameter
+type Compare[T any] func(T, T) int
 
+// builtin types compatible with Cmp
 type builtin interface {
 	~string | ~int | ~uint | ~int64 | ~uint64 | ~int32 | ~uint32 | ~int16 | ~uint16 | ~int8 | ~uint8
 }
 
-func Compare[C builtin](x, y C) int {
+// Cmp is a Compare function for the specified builtin type C.
+//
+// Common to use with string, int, etc.
+func Cmp[T builtin](x, y T) int {
 	switch {
 	case x < y:
 		return -1
@@ -24,20 +34,29 @@ func Compare[C builtin](x, y C) int {
 	}
 }
 
-// TreeSet provides a sorted set implementation.
+// TreeSet provides a generic sortable set implementation for Go.
+// Enables fast storage and retrieval of ordered information. Most effective
+// in cases where data is regularly being added and/or removed and fast
+// lookup properties must be maintained.
 //
-// The underlying data-structure is a standard Red-Black Tree.
+// The underlying data structure is a Red-Black Binary Search Tree.
 // https://en.wikipedia.org/wiki/Red–black_tree
 //
-// The implementation prioritizes readability over maximal optimizations.
-type TreeSet[S any, C Comparison[S]] struct {
+// Not thread safe, and not safe for concurrent modification.
+type TreeSet[T any, C Compare[T]] struct {
 	comparison C
-	root       *node[S]
-	marker     *node[S]
+	root       *node[T]
+	marker     *node[T]
 	size       int
 }
 
-func NewTreeSet[T any, C Comparison[T]](compare C) *TreeSet[T, C] {
+// NewTreeSet creates a TreeSet of type T, comparing elements via C.
+//
+// T may be any type.
+//
+// C is an implementation of Compare[T]. For builtin types, Cmp provides
+// a convenient Compare implementation.
+func NewTreeSet[T any, C Compare[T]](compare C) *TreeSet[T, C] {
 	return &TreeSet[T, C]{
 		comparison: compare,
 		root:       nil,
@@ -146,11 +165,11 @@ type node[T any] struct {
 	right   *node[T]
 }
 
-func (n *node[T]) less(c Comparison[T], o *node[T]) bool {
+func (n *node[T]) less(c Compare[T], o *node[T]) bool {
 	return c(n.element, o.element) < 0
 }
 
-func (n *node[T]) greater(c Comparison[T], o *node[T]) bool {
+func (n *node[T]) greater(c Compare[T], o *node[T]) bool {
 	return c(n.element, o.element) > 0
 }
 
