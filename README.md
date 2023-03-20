@@ -4,7 +4,25 @@
 [![Run CI Tests](https://github.com/hashicorp/go-set/actions/workflows/ci.yaml/badge.svg)](https://github.com/hashicorp/go-set/actions/workflows/ci.yaml)
 [![GitHub](https://img.shields.io/github/license/hashicorp/go-set)](LICENSE)
 
-Provides the `set` package that implements a generic mathematical [set](https://en.wikipedia.org/wiki/Set) for Go. The package only provides a basic implementation that is optimized for correctness and convenience. This package is not thread-safe.
+This repository provides a `set` package containing a few a generic mathematical
+[set](https://en.wikipedia.org/wiki/Set) implementations for Go. Each implementation
+is optimal for a particular use case.
+
+`Set` is ideal for `comparable` types.
+  - backed by `map` builtin
+  - commonly used with `string`, `int`, simple `struct` types, etc.
+
+`HashSet` is useful for types that implement a `Hash()` function.
+  - backed by `map` builtin
+  - commonly used with complex structs
+
+`TreeSet` is useful for comparable data (via `Compare[T]`)
+  - backed by Red-Black Binary Search Tree
+  - commonly used with complex structs with extrinsic order
+  - efficient iteration in sort order
+  - additional methods `Min` / `Max` / `TopK` / `BottomK`
+
+This package is not thread-safe.
 
 # Documentation
 
@@ -82,6 +100,10 @@ Provides helper methods
 - Copy
 - Slice
 - String
+- Min (`TreeSet` only)
+- Max (`TreeSet` only)
+- TopK (`TreeSet` only)
+- BottomK (`TreeSet` only)
 
 # Install
 
@@ -155,3 +177,33 @@ e1 := &employee{name: "armon", id: 2}
 s := set.NewHashSet[*employee, string](10)
 s.Insert(e1)
 ```
+
+# TreeSet Examples
+
+Below are simple example usages of `TreeSet`
+
+(using `Cmp` as `Compare`)
+
+```go
+ts := NewTreeSet[int, Compare[int]](Cmp[int])
+ts.Insert(5)
+```
+
+(using custom `Compare`)
+
+```go
+type waypoint struct {
+    distance int
+		name     string
+}
+
+cmp := func(w1, w2 *waypoint) int {
+		return w1.distance - w2.distance
+}
+
+ts := NewTreeSet[*waypoint, Compare[*waypoint]](cmp)
+ts.Insert(&waypoint{distance: 42, name: "tango"})
+ts.Insert(&waypoint{distance: 13, name: "alpha"})
+ts.Insert(&waypoint{distance: 71, name: "xray"})
+```
+
