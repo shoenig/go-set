@@ -180,8 +180,42 @@ func (s *TreeSet[T, C]) Slice() []T {
 
 // Subset returns whether o is a subset of s.
 func (s *TreeSet[T, C]) Subset(o *TreeSet[T, C]) bool {
-	// todo: traverse o, checking if each element is in s
-	return s.ContainsSlice(o.Slice())
+	// try the fast paths
+	if o.Empty() {
+		return true
+	}
+	if s.Empty() {
+		return false
+	}
+	if s.Size() < o.Size() {
+		return false
+	}
+	// iterate o, and increment s finding each element
+	// i.e. merge algorithm but with channels
+	iterO := o.iterate()
+	iterS := s.iterate()
+
+	idxO := 0
+	idxS := 0
+
+next:
+	for ; idxO < o.Size(); idxO++ {
+		nextO := <-iterO
+		for ; idxS < s.Size(); idxS++ {
+			nextS := <-iterS
+			cmp := s.compare(nextS, nextO)
+			switch {
+			case cmp > 0:
+				return false
+			case cmp < 0:
+				continue
+			default:
+				continue next
+			}
+		}
+		return false
+	}
+	return true
 }
 
 // Union returns a set that contains all elements of s and o combined.
@@ -193,15 +227,77 @@ func (s *TreeSet[T, C]) Union(o *TreeSet[T, C]) *TreeSet[T, C] {
 	return tree
 }
 
-// todo: Difference
+// Difference returns a set that contains elements of s that are not in o.
+func (s *TreeSet[T, C]) Difference(o *TreeSet[T, C]) *TreeSet[T, C] {
+	tree := NewTreeSet[T](s.comparison)
+	f := func(n *node[T]) {
+		if !o.Contains(n.element) {
+			tree.Insert(n.element)
+		}
+	}
+	s.prefix(f, s.root)
+	return tree
+}
 
-// todo: Intersect
+// Intersect returns a set that contains elements that are present in both s and o.
+func (s *TreeSet[T, C]) Intersect(o *TreeSet[T, C]) *TreeSet[T, C] {
+	tree := NewTreeSet[T](s.comparison)
+	f := func(n *node[T]) {
+		if o.Contains(n.element) {
+			tree.Insert(n.element)
+		}
+	}
+	s.prefix(f, s.root)
+	return tree
+}
 
-// todo: Copy
+// Copy creates a copy of s.
+//
+// Individual elements are reference copies.
+func (s *TreeSet[T, C]) Copy() *TreeSet[T, C] {
+	tree := NewTreeSet[T](s.comparison)
+	f := func(n *node[T]) {
+		tree.Insert(n.element)
+	}
+	s.prefix(f, s.root)
+	return tree
+}
 
-// todo: Equal
+// Equal return whether s and o contain the same elements.
+func (s *TreeSet[T, C]) Equal(o *TreeSet[T, C]) bool {
+	// try the fast fail paths
+	if s.Empty() || o.Empty() {
+		return s.Size() == o.Size()
+	}
+	switch {
+	case s.Size() != o.Size():
+		return false
+	case s.comparison(s.Min(), o.Min()) != 0:
+		return false
+	case s.comparison(s.Max(), o.Max()) != 0:
+		return false
+	}
 
-// todo: EqualSlice
+	iterS := s.iterate()
+	iterO := o.iterate()
+	for i := 0; i < s.Size(); i++ {
+		nextS := <-iterS
+		nextO := <-iterO
+		if s.compare(nextS, nextO) != 0 {
+			return false
+		}
+	}
+
+	return true
+}
+
+// EqualSlice returns whether s and items contain the same elements.
+func (s *TreeSet[T, C]) EqualSlice(items []T) bool {
+	if s.Size() != len(items) {
+		return false
+	}
+	return s.ContainsSlice(items)
+}
 
 // String creates a string representation of s, using "%v" printf formatting
 // each element into a string. The result contains elements in order.
@@ -640,4 +736,13 @@ func (s *TreeSet[T, C]) prefix(visit func(*node[T]), n *node[T]) {
 	visit(n)
 	s.prefix(visit, n.left)
 	s.prefix(visit, n.right)
+}
+
+func (s *TreeSet[T, C]) iterate() <-chan *node[T] {
+	c := make(chan *node[T], 1)
+	v := func(n *node[T]) {
+		c <- n
+	}
+	go s.infix(v, s.root)
+	return c
 }
