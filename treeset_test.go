@@ -468,6 +468,46 @@ func TestTreeSet_Equal(t *testing.T) {
 	})
 }
 
+func TestTreeSet_TopK(t *testing.T) {
+	t.Run("empty", func(t *testing.T) {
+		ts := NewTreeSet[int, Compare[int]](Cmp[int])
+		result := ts.TopK(5)
+		must.Eq(t, []int{}, result)
+	})
+
+	t.Run("same size", func(t *testing.T) {
+		ts := TreeSetFrom[int, Compare[int]]([]int{3, 9, 1, 7, 5}, Cmp[int])
+		result := ts.TopK(5)
+		must.Eq(t, []int{1, 3, 5, 7, 9}, result)
+	})
+
+	t.Run("smaller k", func(t *testing.T) {
+		ts := TreeSetFrom[int, Compare[int]]([]int{3, 9, 1, 7, 5}, Cmp[int])
+		result := ts.TopK(3)
+		must.Eq(t, []int{1, 3, 5}, result)
+	})
+}
+
+func TestTreeSet_BottomK(t *testing.T) {
+	t.Run("empty", func(t *testing.T) {
+		ts := NewTreeSet[int, Compare[int]](Cmp[int])
+		result := ts.BottomK(5)
+		must.Eq(t, []int{}, result)
+	})
+
+	t.Run("same size", func(t *testing.T) {
+		ts := TreeSetFrom[int, Compare[int]]([]int{3, 9, 1, 7, 5}, Cmp[int])
+		result := ts.BottomK(5)
+		must.Eq(t, []int{9, 7, 5, 3, 1}, result)
+	})
+
+	t.Run("smaller k", func(t *testing.T) {
+		ts := TreeSetFrom[int, Compare[int]]([]int{3, 9, 1, 7, 5}, Cmp[int])
+		result := ts.BottomK(3)
+		must.Eq(t, []int{9, 7, 5}, result)
+	})
+}
+
 func TestTreeSet_Slice(t *testing.T) {
 	t.Run("empty", func(t *testing.T) {
 		ts := NewTreeSet[int, Compare[int]](Cmp[int])

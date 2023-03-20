@@ -142,9 +142,19 @@ func (s *TreeSet[T, C]) Max() T {
 	return n.element
 }
 
-// todo: TopK
+// TopK returns the top n elements in s.
+func (s *TreeSet[T, C]) TopK(n int) []T {
+	result := make([]T, 0, n)
+	s.fill(s.root, &result)
+	return result
+}
 
 // todo: BottomK
+func (s *TreeSet[T, C]) BottomK(n int) []T {
+	result := make([]T, 0, n)
+	s.fillR(s.root, &result)
+	return result
+}
 
 func (s *TreeSet[T, C]) Contains(item T) bool {
 	return s.locate(s.root, item) != nil
@@ -727,6 +737,42 @@ func (s *TreeSet[T, C]) infix(visit func(*node[T]), n *node[T]) {
 	s.infix(visit, n.left)
 	visit(n)
 	s.infix(visit, n.right)
+}
+
+func (s *TreeSet[T, C]) fill(n *node[T], k *[]T) {
+	if n == nil {
+		return
+	}
+
+	if len(*k) < cap(*k) {
+		s.fill(n.left, k)
+	}
+
+	if len(*k) < cap(*k) {
+		*k = append(*k, n.element)
+	}
+
+	if len(*k) < cap(*k) {
+		s.fill(n.right, k)
+	}
+}
+
+func (s *TreeSet[T, C]) fillR(n *node[T], k *[]T) {
+	if n == nil {
+		return
+	}
+
+	if len(*k) < cap(*k) {
+		s.fillR(n.right, k)
+	}
+
+	if len(*k) < cap(*k) {
+		*k = append(*k, n.element)
+	}
+
+	if len(*k) < cap(*k) {
+		s.fillR(n.left, k)
+	}
 }
 
 func (s *TreeSet[T, C]) prefix(visit func(*node[T]), n *node[T]) {
