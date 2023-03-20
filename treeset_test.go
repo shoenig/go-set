@@ -91,12 +91,6 @@ func TestTreeSet_Size(t *testing.T) {
 	})
 }
 
-// Slice
-
-// String
-
-// StringFunc
-
 func TestTreeSet_Insert_token(t *testing.T) {
 	ts := NewTreeSet[*token, Compare[*token]](compareTokens)
 
@@ -471,6 +465,49 @@ func TestTreeSet_Equal(t *testing.T) {
 		t1 := TreeSetFrom[int, Compare[int]]([]int{1, 2, 3, 5, 6}, Cmp[int])
 		t2 := TreeSetFrom[int, Compare[int]]([]int{1, 2, 4, 5, 6}, Cmp[int])
 		must.NotEqual(t, t1, t2)
+	})
+}
+
+func TestTreeSet_Slice(t *testing.T) {
+	t.Run("empty", func(t *testing.T) {
+		ts := NewTreeSet[int, Compare[int]](Cmp[int])
+		result := ts.Slice()
+		must.Eq(t, []int{}, result)
+	})
+
+	t.Run("full", func(t *testing.T) {
+		ts := TreeSetFrom[int, Compare[int]]([]int{4, 2, 6, 1}, Cmp[int])
+		result := ts.Slice()
+		must.Eq(t, []int{1, 2, 4, 6}, result)
+	})
+}
+
+func TestTreeSet_String(t *testing.T) {
+	t.Run("empty", func(t *testing.T) {
+		ts := NewTreeSet[int, Compare[int]](Cmp[int])
+		result := ts.String()
+		must.Eq(t, "[]", result)
+	})
+
+	t.Run("full", func(t *testing.T) {
+		ts := TreeSetFrom[int, Compare[int]]([]int{4, 2, 6, 1}, Cmp[int])
+		result := ts.String()
+		must.Eq(t, "[1 2 4 6]", result)
+	})
+}
+
+func TestTreeSet_StringFunc(t *testing.T) {
+	f := func(i int) string { return fmt.Sprintf("%02d", i) }
+	t.Run("empty", func(t *testing.T) {
+		ts := NewTreeSet[int, Compare[int]](Cmp[int])
+		result := ts.StringFunc(f)
+		must.Eq(t, "[]", result)
+	})
+
+	t.Run("full", func(t *testing.T) {
+		ts := TreeSetFrom[int, Compare[int]]([]int{4, 2, 6, 1}, Cmp[int])
+		result := ts.StringFunc(f)
+		must.Eq(t, "[01 02 04 06]", result)
 	})
 }
 
