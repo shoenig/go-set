@@ -36,13 +36,24 @@ The same result, but in one line using package `go-set`.
 list := set.From[string](items).Slice()
 ```
 
-# Hash Function
+# HashSet
 
-In addition to `Set`, there is `HashSet` for types that implement a `Hash()` function.
-The custom type must satisfy `HashFunc[H Hash]` - essentially any `Hash()`
-function that returns a `string` or `integer`. This enables types to use string-y
-hash functions like `md5`, `sha1`, or even `GoString()`, but also enables types
-to implement an efficient hash function using a hash code based on prime multiples.
+The `go-set` package includes `HashSet` for types that implement a `Hash()` function.
+The custom type must satisfy `HashFunc[H Hash]` - essentially any `Hash()` function
+that returns a `string` or `integer`. This enables types to use string-y hash
+functions like `md5`, `sha1`, or even `GoString()`, but also enables types to
+implement an efficient hash function using a hash code based on prime multiples.
+
+# TreeSet
+
+The `go-set` package includes `TreeSet` for creating sorted sets. A `TreeSet` may
+be used with any type `T` as the comparison between elements is provided by implementing
+`Compare[T]`. The `Cmp[builtin]` helper provides a convenient implementation of
+`Compare` for `builtin` types like `string` or `int`. A `TreeSet` is backed by
+an underlying balanced binary search tree, making operations like in-order traversal
+efficient, in addition to enabling functions like `Min()`, `Max()`, `TopK()`, and
+`BottomK()`.
+
 
 ### Methods
 

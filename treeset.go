@@ -20,10 +20,10 @@ type builtin interface {
 	~string | ~int | ~uint | ~int64 | ~uint64 | ~int32 | ~uint32 | ~int16 | ~uint16 | ~int8 | ~uint8
 }
 
-// Cmp is a Compare function for the specified builtin type C.
+// Cmp is a Compare function for the specified builtin type B.
 //
 // Common to use with string, int, etc.
-func Cmp[T builtin](x, y T) int {
+func Cmp[B builtin](x, y B) int {
 	switch {
 	case x < y:
 		return -1
