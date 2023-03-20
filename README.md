@@ -4,9 +4,10 @@
 [![Run CI Tests](https://github.com/hashicorp/go-set/actions/workflows/ci.yaml/badge.svg)](https://github.com/hashicorp/go-set/actions/workflows/ci.yaml)
 [![GitHub](https://img.shields.io/github/license/hashicorp/go-set)](LICENSE)
 
-This repository provides a `set` package containing a few a generic mathematical
-[set](https://en.wikipedia.org/wiki/Set) implementations for Go. Each implementation
-is optimal for a particular use case.
+The `go-set` repository provides a `set` package containing a few
+generic [Set](https://en.wikipedia.org/wiki/Set) implementations for Go.
+
+Each implementation is optimal for a particular use case.
 
 `Set` is ideal for `comparable` types.
   - backed by `map` builtin
