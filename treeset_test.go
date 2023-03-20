@@ -365,9 +365,7 @@ func (s *TreeSet[T, C]) dump() string {
 func invariants[T any, C Compare[T]](t *testing.T, tree *TreeSet[T, C], cmp C) {
 	// assert Slice elements are ascending
 	slice := tree.Slice()
-	must.AscendingFunc(t, slice, func(a, b T) bool {
-		return cmp(a, b) < 1
-	})
+	must.AscendingCmp(t, slice, cmp)
 
 	// assert size of tree
 	size := tree.Size()
@@ -378,12 +376,10 @@ func invariants[T any, C Compare[T]](t *testing.T, tree *TreeSet[T, C], cmp C) {
 	}
 
 	// assert slice[0] is the minimum
-	min := tree.Min()
-	must.Eq(t, slice[0], min, must.Sprint("tree contains wrong min"))
+	must.Min(t, slice[0], tree)
 
 	// assert slice[len(slice)-1] is the maximum
-	max := tree.Max()
-	must.Eq(t, slice[len(slice)-1], max, must.Sprint("tree contains wrong max"))
+	must.Max(t, slice[len(slice)-1], tree)
 }
 
 // ints will create a []int from 1 to n
