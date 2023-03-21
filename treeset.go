@@ -15,15 +15,15 @@ import (
 // > 0 if the first parameters is greater than the second parameter
 type Compare[T any] func(T, T) int
 
-// builtin types compatible with Cmp
-type builtin interface {
+// BuiltIn types compatible with Cmp
+type BuiltIn interface {
 	~string | ~int | ~uint | ~int64 | ~uint64 | ~int32 | ~uint32 | ~int16 | ~uint16 | ~int8 | ~uint8
 }
 
 // Cmp is a Compare function for the specified builtin type B.
 //
 // Common to use with string, int, etc.
-func Cmp[B builtin](x, y B) int {
+func Cmp[B BuiltIn](x, y B) int {
 	switch {
 	case x < y:
 		return -1
