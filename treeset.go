@@ -142,24 +142,30 @@ func (s *TreeSet[T, C]) Max() T {
 	return n.element
 }
 
-// TopK returns the top n elements in s.
+// TopK returns the top n (smallest) elements in s, in ascending order.
 func (s *TreeSet[T, C]) TopK(n int) []T {
 	result := make([]T, 0, n)
-	s.fill(s.root, &result)
+	s.fillLeft(s.root, &result)
 	return result
 }
 
-// todo: BottomK
+// BottomK returns the bottom n (largest) elements in s, in descending order.
 func (s *TreeSet[T, C]) BottomK(n int) []T {
 	result := make([]T, 0, n)
-	s.fillR(s.root, &result)
+	s.fillRight(s.root, &result)
 	return result
 }
 
+// Contains returns whether item is present in s.
 func (s *TreeSet[T, C]) Contains(item T) bool {
 	return s.locate(s.root, item) != nil
 }
 
+// ContainsSlice returns whether s contains the same set of elements that are in
+// items. The items slice may contain duplicate elements.
+//
+// If the items slice is known to be set-like (no duplicates), EqualSlice provides
+// a more efficient implementation.
 func (s *TreeSet[T, C]) ContainsSlice(items []T) bool {
 	for _, item := range items {
 		if !s.Contains(item) {
@@ -739,13 +745,13 @@ func (s *TreeSet[T, C]) infix(visit func(*node[T]), n *node[T]) {
 	s.infix(visit, n.right)
 }
 
-func (s *TreeSet[T, C]) fill(n *node[T], k *[]T) {
+func (s *TreeSet[T, C]) fillLeft(n *node[T], k *[]T) {
 	if n == nil {
 		return
 	}
 
 	if len(*k) < cap(*k) {
-		s.fill(n.left, k)
+		s.fillLeft(n.left, k)
 	}
 
 	if len(*k) < cap(*k) {
@@ -753,17 +759,17 @@ func (s *TreeSet[T, C]) fill(n *node[T], k *[]T) {
 	}
 
 	if len(*k) < cap(*k) {
-		s.fill(n.right, k)
+		s.fillLeft(n.right, k)
 	}
 }
 
-func (s *TreeSet[T, C]) fillR(n *node[T], k *[]T) {
+func (s *TreeSet[T, C]) fillRight(n *node[T], k *[]T) {
 	if n == nil {
 		return
 	}
 
 	if len(*k) < cap(*k) {
-		s.fillR(n.right, k)
+		s.fillRight(n.right, k)
 	}
 
 	if len(*k) < cap(*k) {
@@ -771,7 +777,7 @@ func (s *TreeSet[T, C]) fillR(n *node[T], k *[]T) {
 	}
 
 	if len(*k) < cap(*k) {
-		s.fillR(n.left, k)
+		s.fillRight(n.left, k)
 	}
 }
 
