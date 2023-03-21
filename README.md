@@ -55,6 +55,14 @@ The same result, but in one line using package `go-set`.
 list := set.From[string](items).Slice()
 ```
 
+# Set
+
+The `go-set` package includes `Set` for types that satisfy the `comparable` constraint.
+Note that complex structs (i.e. is a pointer or contains pointer fields) will not be
+"comparable" in the sense of deep equality, but rather in the sense of pointer addresses.
+The `Set` type should be used with builtin types like `string`, `int`, or simple struct
+types with no pointers.
+
 # HashSet
 
 The `go-set` package includes `HashSet` for types that implement a `Hash()` function.
@@ -124,20 +132,20 @@ Below are simple example usages of `Set`
 s := set.New[int](10)
 s.Insert(1)
 s.InsertAll([]int{2, 3, 4})
-s.Size() # 3
+s.Size()
 ```
 
 ```go
 s := set.From[string]([]string{"one", "two", "three"})
-s.Contains("three") # true
-s.Remove("one") # true
+s.Contains("three")
+s.Remove("one")
 ```
 
 
 ```go
 a := set.From[int]([]int{2, 4, 6, 8})
 b := set.From[int]([]int{4, 5, 6})
-a.Intersect(b) # {4, 6}
+a.Intersect(b)
 ```
 
 # HashSet Examples
@@ -195,11 +203,11 @@ ts.Insert(5)
 ```go
 type waypoint struct {
     distance int
-		name     string
+    name     string
 }
 
 cmp := func(w1, w2 *waypoint) int {
-		return w1.distance - w2.distance
+    return w1.distance - w2.distance
 }
 
 ts := NewTreeSet[*waypoint, Compare[*waypoint]](cmp)
